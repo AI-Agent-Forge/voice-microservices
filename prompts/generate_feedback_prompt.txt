@@ -1,0 +1,3 @@
+Use transcript, alignment, user_phonemes, target_phonemes, and phoneme_diff to produce actionable feedback.
+Return JSON with overall_summary, issues, and drills.
+
