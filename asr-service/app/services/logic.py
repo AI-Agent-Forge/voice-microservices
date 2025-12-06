@@ -15,11 +15,19 @@ def save_temp_audio(file):
 
 # Try importing whisper, fallback if not available
 try:
+    # Disable SSL verification for model download (handles corporate proxies/self-signed certs)
+    import ssl
+    ssl._create_default_https_context = ssl._create_unverified_context
+    
     import whisper
     model = whisper.load_model("base")
     WHISPER_AVAILABLE = True
 except ImportError:
     print("Warning: openai-whisper not installed. Using mock transcription.")
+    WHISPER_AVAILABLE = False
+    model = None
+except Exception as e:
+    print(f"Warning: Failed to load Whisper model: {e}. Using mock transcription.")
     WHISPER_AVAILABLE = False
     model = None
 

@@ -23,7 +23,7 @@ cp .env.example .env
 ```
 2. Build and start:
 ```
-DOCKER_BUILDKIT=0 docker-compose build --pull
+docker-compose build --pull
 docker-compose up --remove-orphans
 ```
 3. Apply migrations inside the orchestrator container:
