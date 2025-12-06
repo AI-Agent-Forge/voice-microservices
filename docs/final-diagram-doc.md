@@ -212,7 +212,7 @@ flowchart LR
   %% SECTION: BACKEND CORE
   %% ================================
   subgraph BACKEND["Backend Core"]
-    API_GW -->|PUT audio| MINIO[MinIO (S3 Compatible)<br><sub><a href='http://localhost:9001' target='_blank'>MinIO Console</a></sub>]
+    API_GW -->|PUT audio| MINIO["MinIO (S3 Compatible)<br><sub><a href='http://localhost:9001' target='_blank'>MinIO Console</a></sub>"]
     API_GW -->|POST /orchestrator/process-all| ORCH["Orchestrator<br/>(FastAPI)<br><sub><a href='http://localhost:8010/docs' target='_blank'>/orchestrator/docs</a><br/><a href='http://localhost:8010/orchestrator/health' target='_blank'>/health</a></sub>"]
   end
 
