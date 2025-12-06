@@ -7,6 +7,9 @@ import { Mic, Square, Play, Pause, RotateCcw, ChevronLeft } from 'lucide-react'
 import WaveformVisualizer from '../components/WaveformVisualizer'
 import ScriptSelector from '../components/ScriptSelector'
 import RecordingTimer from '../components/RecordingTimer'
+import { saveAudio } from '../services/audioStorage'
+import { transcribeAudio } from '../services/asr'
+import { logger } from '../stores/debug'
 
 export default function PracticeArena() {
   const navigate = useNavigate()
@@ -82,25 +85,60 @@ export default function PracticeArena() {
     if (!audioBlob || !selectedScript) return
 
     setIsAnalyzing(true)
+    logger.info('Starting analysis...', { script: selectedScript.title })
 
-    // Simulate analysis delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      // Call ASR service
+      const asrResult = await transcribeAudio(audioBlob)
+      console.log('ASR Result:', asrResult)
 
-    // Create mock analysis result
-    const mockSession = {
-      id: `session-${Date.now()}`,
-      user_id: 'mock-user-123',
-      script_text: selectedScript.text,
-      overall_score: Math.floor(Math.random() * 30) + 70, // Random score 70-100
-      audio_url: mediaBlobUrl || 'mock-audio-url',
-      created_at: new Date().toISOString()
+      // Create mock analysis result (merging ASR data)
+      const sessionId = `session-${Date.now()}`
+      
+      // Save audio blob to IndexedDB
+      await saveAudio(sessionId, audioBlob)
+      
+      const mockSession = {
+        id: sessionId,
+        user_id: 'mock-user-123',
+        script_text: selectedScript.text,
+        overall_score: Math.floor(Math.random() * 30) + 70, // Random score 70-100
+        audio_url: '', // We'll load it from IndexedDB
+        created_at: new Date().toISOString(),
+        analysis: {
+            transcript: asrResult.transcript,
+            words: asrResult.words.map(w => ({
+                word: w.word,
+                accuracy_score: 90, // Mock score for now
+                phonemes_user: [], 
+                phonemes_target: [],
+                is_stress_error: false,
+                error_severity: 'none'
+            })),
+            feedback: {
+                summary: "Analysis complete. (AI feedback placeholder)",
+                rhythm_comment: "Good pace.",
+                improvements: []
+            },
+            audio_urls: {
+                original: '',
+                tts_us_standard: '',
+                tts_user_clone: ''
+            }
+        }
+      }
+
+      saveSession(mockSession)
+      
+      // Navigate to review page
+      navigate(`/review/${mockSession.id}`)
+    } catch (error) {
+      logger.error('Analysis failed', error)
+      console.error('Analysis failed:', error)
+      alert('Failed to analyze audio. Please check if the ASR service is running.')
+    } finally {
+      setIsAnalyzing(false)
     }
-
-    saveSession(mockSession)
-    setIsAnalyzing(false)
-    
-    // Navigate to review page
-    navigate(`/review/${mockSession.id}`)
   }
 
   const handleReset = () => {

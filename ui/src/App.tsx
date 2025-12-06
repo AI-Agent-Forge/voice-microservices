@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import PracticeArena from './pages/PracticeArena'
 import ReviewSession from './pages/ReviewSession'
 import Login from './pages/Login'
+import DebugPanel from './components/DebugPanel'
 
 function App() {
   const { isAuthenticated, checkAuth } = useAuthStore()
@@ -22,6 +23,7 @@ function App() {
           <Route path="/review/:sessionId" element={<ReviewSession />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <DebugPanel />
       </div>
     </BrowserRouter>
   )

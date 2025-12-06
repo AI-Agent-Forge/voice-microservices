@@ -7,3 +7,6 @@ librosa
 python-multipart
 boto3
 requests
+openai-whisper
+torch
+ffmpeg-python

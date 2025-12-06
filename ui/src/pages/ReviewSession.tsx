@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePracticeStore } from '../stores/practice'
+import { getAudio } from '../services/audioStorage'
 import { ChevronLeft, Volume2, Award, Target, TrendingUp } from 'lucide-react'
 import AudioPlayer from '../components/AudioPlayer'
 import TextDiff from '../components/TextDiff'
@@ -15,6 +16,7 @@ export default function ReviewSession() {
   const [currentSession, setCurrentSession] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'text' | 'audio' | 'phonetic'>('text')
   const [isPlaying, setIsPlaying] = useState(false)
+  const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null)
 
   // Mock analysis data
   const mockAnalysis = {
@@ -77,6 +79,25 @@ export default function ReviewSession() {
     setCurrentSession(session)
   }, [sessionId, sessions, selectedScript])
 
+  useEffect(() => {
+    const loadAudio = async () => {
+      if (sessionId) {
+        const blob = await getAudio(sessionId)
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          setUserAudioUrl(url)
+        }
+      }
+    }
+    loadAudio()
+    
+    return () => {
+      if (userAudioUrl) {
+        URL.revokeObjectURL(userAudioUrl)
+      }
+    }
+  }, [sessionId])
+
   if (!currentSession) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -86,6 +107,11 @@ export default function ReviewSession() {
         </div>
       </div>
     )
+  }
+
+  const audioUrls = {
+    ...currentSession.analysis?.audio_urls,
+    original: userAudioUrl || currentSession.analysis?.audio_urls.original
   }
 
   return (
@@ -235,7 +261,7 @@ export default function ReviewSession() {
                   <div className="space-y-6">
                     <h3 className="text-xl font-bold text-white mb-6">Compare Your Voice</h3>
                     <AudioPlayer 
-                      audioUrls={mockAnalysis.audio_urls}
+                      audioUrls={audioUrls}
                       isPlaying={isPlaying}
                       onPlayPause={setIsPlaying}
                     />

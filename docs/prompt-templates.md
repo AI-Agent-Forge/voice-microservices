@@ -1,12 +1,3 @@
-Below are **production-ready prompt templates** for your “Accent Feedback LLM Service.”
-These templates are optimized for **OpenAI GPT-4.1 / GPT-5**, **Gemini**, **Claude**, and **LLaMA**.
-
-Each prompt is designed to produce **structured JSON**, avoids hallucination, and guides the model to analyze pronunciation issues with **maximum accuracy**.
-
-You can copy/paste these directly into your **`feedback-llm-service`** microservice.
-
----
-
 # ⭐ **1. MASTER SYSTEM PROMPT (Use for every request)**
 
 ### **`system_prompt.txt`**
