@@ -39,3 +39,43 @@ docker-compose exec orchestrator alembic upgrade head
 - Set `MOCK_MODE=true` to return stubbed responses for local testing.
 - GPU services use CUDA base images; for local CPU-only development the containers still build but heavy models are stubbed.
 
+## UI Setup
+
+The `ui/` directory contains a React application for interacting with the voice microservices.
+
+### Tech Stack
+- **React 19** with TypeScript
+- **Vite** for development and build
+- **TailwindCSS** for styling
+- **Zustand** for state management
+- **Framer Motion** for animations
+- **WaveSurfer.js** for audio visualization
+
+### Prerequisites
+- Node.js (v18+ recommended)
+- npm or yarn
+
+### Installation
+```bash
+cd ui
+npm install
+```
+
+### Development
+```bash
+npm run dev
+```
+The UI will be available at `http://localhost:5173`
+
+### Build
+```bash
+npm run build
+```
+
+### Configuration
+The UI connects to the orchestrator service. Ensure the backend services are running before starting the UI.
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `VITE_API_URL` | Orchestrator API URL | `http://localhost:8010` |
+
