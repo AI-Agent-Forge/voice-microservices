@@ -8,3 +8,4 @@ soundfile
 librosa
 boto3
 requests
+google-genai

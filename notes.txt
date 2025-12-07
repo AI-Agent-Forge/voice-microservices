@@ -1,0 +1,4 @@
+DOCKER_BUILDKIT=0 docker-compose build
+DOCKER_BUILDKIT=0 docker-compose up --build -d
+
+DOCKER_BUILDKIT=0 docker-compose build asr-service && docker-compose up -d asr-service

@@ -83,7 +83,7 @@ flowchart TD
     LLMCHK --> LLMCAUSE{Common Causes}
     LLMCAUSE -->|Invalid JSON output| LLM1[Use strict response_format<br/>temperature=0]
     LLMCAUSE -->|Hallucinated phonemes| LLM2[Improve guardrails<br/>Fix prompt template]
-    LLMCAUSE -->|API key error| LLM3[Fix OPENAI_API_KEY/GEMINI_API_KEY in .env]
+    LLMCAUSE -->|API key error| LLM3[Fix GEMINI_API_KEY in .env\u003cbr/\u003eSet MOCK_MODE=false]
     LLM1 --> RETEST1
     LLM2 --> RETEST1
     LLM3 --> RETEST1

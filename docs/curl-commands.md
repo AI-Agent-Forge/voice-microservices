@@ -176,16 +176,18 @@ curl -X POST "http://localhost:8004/diff/process" \
 
 ---
 
-# ✅ **6. TTS Service**
+# ✅ **6. TTS Service (Gemini TTS)**
 
-**Goal:** Generate American-accent audio
+**Goal:** Generate American-accent audio using Gemini TTS API
+
+**Available Voices:** Aoede, Charon, Fenrir, **Kore** (default), Puck, Zephyr, Orus, Leda, Helios, Nova, Altair, Lyra, Orion, Vega, Clio, Dorus, Echo, Fable, Cove, Sky, Sage, Ember, Vale, Reef, Aria, Ivy, Stone, Quill, Drift, Briar
 
 ```bash
 curl -X POST "http://localhost:8005/tts/process" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "hello world",
-    "voice": "us_female_1"
+    "voice": "Kore"
   }'
 ```
 
@@ -195,7 +197,10 @@ curl -X POST "http://localhost:8005/tts/process" \
 
 ```json
 {
-  "tts_url": "http://minio:9000/audio/hello-world-tts.wav"
+  "audio_url": "http://minio:9000/audio/tts/abc123.wav",
+  "voice": "Kore",
+  "model": "gemini-2.5-flash-preview-tts",
+  "duration_estimate": 1.25
 }
 ```
 

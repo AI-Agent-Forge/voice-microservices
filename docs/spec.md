@@ -177,8 +177,21 @@ sequenceDiagram
 
 ### **TTS Service**
 
-* Produces US-accent standard audio (Waveform)
-* Uses XTTS/Coqui (GPU)
+* Produces US-accent standard audio (WAV format, 24kHz)
+* Uses Gemini TTS API (`gemini-2.5-flash-preview-tts`)
+* Uploads generated audio to S3/MinIO
+
+**Available Voices (30 options):**
+| Voice | Voice | Voice | Voice | Voice |
+|-------|-------|-------|-------|-------|
+| Aoede | Charon | Fenrir | **Kore** (default) | Puck |
+| Zephyr | Orus | Leda | Helios | Nova |
+| Altair | Lyra | Orion | Vega | Clio |
+| Dorus | Echo | Fable | Cove | Sky |
+| Sage | Ember | Vale | Reef | Aria |
+| Ivy | Stone | Quill | Drift | Briar |
+
+**Supported Languages (24):** en-US, en-IN, de-DE, es-US, fr-FR, hi-IN, id-ID, it-IT, ja-JP, ko-KR, pt-BR, ru-RU, nl-NL, pl-PL, th-TH, tr-TR, vi-VN, ro-RO, uk-UA, bn-BD, mr-IN, ta-IN, te-IN, ar-EG
 
 ### **Voice Conversion Service**
 
@@ -187,6 +200,7 @@ sequenceDiagram
 
 ### **LLM Feedback Service**
 
+* Uses Gemini API (`gemini-2.0-flash` by default)
 * Applies structured prompts
 * Generates:
 
@@ -194,7 +208,7 @@ sequenceDiagram
   * Pronunciation corrections
   * Minimal pair drills
   * Stress/schwa guidance
-* Uses OpenAI/Gemini or local LLM
+* Configurable via `GEMINI_API_KEY` and `GEMINI_MODEL` environment variables
 
 ---
 

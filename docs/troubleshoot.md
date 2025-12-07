@@ -254,34 +254,46 @@ curl -X POST http://localhost:8004/diff/process -d '{
 
 # --------------------------------------------------------------------
 
-# **5️⃣ TTS Service (XTTS/Coqui) — Troubleshooting**
+# **5️⃣ TTS Service (Gemini TTS) — Troubleshooting**
 
-### **❌ Issue: “CUDA out of memory”**
-
-Fix:
-
-* Use FP16
-* Switch to smaller model
-* Limit batch size
-
----
-
-### **❌ Issue: Audio distorted / robotic**
+### **❌ Issue: "API key error" / Authentication failed**
 
 Fix:
 
-* Ensure GPU enabled
-* Check sampling rate matches 44.1k or 22.05k depending on model
-* Update Coqui version to latest
+* Check `.env` for:
+
+```
+GEMINI_API_KEY=your-api-key-here
+MOCK_MODE=false
+```
 
 ---
 
-### **❌ Issue: Model doesn’t load**
+### **❌ Issue: Audio not generated / empty response**
 
-Check:
+Causes:
 
-```bash
-ls /models/xtts
+* Text too long (context limit: 32k tokens)
+* Invalid voice name
+
+Fix:
+
+* Shorten input text
+* Use valid voice name: Kore, Puck, Aoede, Charon, Fenrir, Zephyr, etc.
+
+---
+
+### **❌ Issue: Audio upload fails (S3/MinIO)**
+
+Fix:
+
+* Check MinIO is running: `docker-compose logs minio`
+* Verify credentials in `.env`:
+
+```
+STORAGE_ENDPOINT=http://minio:9000
+STORAGE_ACCESS_KEY=minioadmin
+STORAGE_SECRET_KEY=minioadmin
 ```
 
 ---
@@ -290,7 +302,8 @@ ls /models/xtts
 
 ```bash
 curl -X POST http://localhost:8005/tts/process \
-  -d '{"text":"hello world","voice":"us_female"}'
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello world, how are you today?", "voice":"Kore"}'
 ```
 
 ---
@@ -368,8 +381,9 @@ Fix:
 * Check `.env` for:
 
 ```
-OPENAI_API_KEY=
-GEMINI_API_KEY=
+GEMINI_API_KEY=your-api-key-here
+GEMINI_MODEL=gemini-2.0-flash  # optional
+MOCK_MODE=false  # set to false to enable real API calls
 ```
 
 ---
