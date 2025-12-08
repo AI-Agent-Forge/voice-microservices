@@ -17,7 +17,7 @@ Before you start, make sure you have:
 
 | Intern | Machine Name | GPU | Purpose | Zone |
 |--------|--------------|-----|---------|------|
-| madhuvandhan0723@gmail.com | `sentinel-hive-dev` | **NVIDIA L4** (24GB VRAM) | LLM Fine-tuning | us-central1-c |
+| madhuvandhan0723@gmail.com | `sentinel-hive-dev` | **Tesla T4** (16GB VRAM) | LLM Fine-tuning | us-central1-a |
 | muraliyasha11@gmail.com | `voice-model-dev` | **Tesla T4** (16GB VRAM) | Voice Fine-tuning | us-central1-a |
 
 **Common Specs:** 4 vCPU, 16GB RAM, 200GB SSD
@@ -193,7 +193,11 @@ gcloud compute instances stop voice-model-dev --zone=us-central1-a
 
 > ⚠️ **Cost Warning**: The VM costs ~$0.70/hour when running. A forgotten VM running 24/7 = ~$500/month!
 > 
-> There's an auto-stop at **3 AM Singapore time** as a safety net, but please stop manually when done.
+> **Auto-stop features:**
+> - 🤖 **Idle shutdown**: VM auto-stops after **30 minutes of inactivity** (GPU <5% AND CPU <10%)
+> - 🌙 **Nightly shutdown**: Safety net at **3 AM Singapore time** (planned)
+> 
+> Please still stop manually when done - don't rely solely on auto-stop!
 
 ---
 
