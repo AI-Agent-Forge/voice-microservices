@@ -41,12 +41,7 @@ def get_model():
     try:
         import whisperx
         
-        logger.info(
-            "Loading WhisperX model",
-            model=settings.WHISPER_MODEL,
-            device=settings.DEVICE,
-            compute_type=settings.compute_type
-        )
+        logger.info(f"Loading WhisperX model: {settings.WHISPER_MODEL} on {settings.DEVICE} with {settings.compute_type}")
         
         # Load the WhisperX model
         _whisperx_model = whisperx.load_model(
@@ -63,7 +58,7 @@ def get_model():
         logger.error("WhisperX not installed, falling back to mock mode")
         return None
     except Exception as e:
-        logger.error("Failed to load WhisperX model", error=str(e))
+        logger.error(f"Failed to load WhisperX model: {str(e)}")
         raise RuntimeError(f"Failed to load WhisperX model: {e}")
 
 
@@ -81,7 +76,7 @@ def get_align_model(language_code: str = "en"):
         
         # Only reload if language changed
         if _align_model is None:
-            logger.info("Loading alignment model", language=language_code)
+            logger.info(f"Loading alignment model for language: {language_code}")
             _align_model, _align_metadata = whisperx.load_align_model(
                 language_code=language_code,
                 device=settings.DEVICE
@@ -91,7 +86,7 @@ def get_align_model(language_code: str = "en"):
         return _align_model, _align_metadata
         
     except Exception as e:
-        logger.warning("Failed to load alignment model", error=str(e))
+        logger.warning(f"Failed to load alignment model: {str(e)}")
         return None, None
 
 
@@ -113,11 +108,11 @@ def save_temp_audio(file) -> str:
         with os.fdopen(fd, 'wb') as tmp:
             shutil.copyfileobj(file.file, tmp)
         
-        logger.debug("Saved temp audio file", path=path)
+        logger.debug(f"Saved temp audio file: {path}")
         return path
         
     except Exception as e:
-        logger.error("Error saving temp file", error=str(e))
+        logger.error(f"Error saving temp file: {str(e)}")
         raise RuntimeError(f"Failed to save uploaded file: {e}")
 
 
@@ -143,14 +138,14 @@ async def download_audio_from_url(audio_url: str) -> str:
         with os.fdopen(fd, 'wb') as tmp:
             tmp.write(response.content)
         
-        logger.debug("Downloaded audio from URL", url=str(audio_url), path=path)
+        logger.debug(f"Downloaded audio from URL: {audio_url} to {path}")
         return path
         
     except httpx.HTTPError as e:
-        logger.error("Failed to download audio", url=str(audio_url), error=str(e))
+        logger.error(f"Failed to download audio from {audio_url}: {str(e)}")
         raise RuntimeError(f"Failed to download audio from URL: {e}")
     except Exception as e:
-        logger.error("Error downloading audio", error=str(e))
+        logger.error(f"Error downloading audio: {str(e)}")
         raise RuntimeError(f"Failed to download audio: {e}")
 
 
@@ -159,9 +154,9 @@ def cleanup_temp_file(path: str):
     try:
         if path and os.path.exists(path):
             os.remove(path)
-            logger.debug("Cleaned up temp file", path=path)
+            logger.debug(f"Cleaned up temp file: {path}")
     except Exception as e:
-        logger.warning("Failed to cleanup temp file", path=path, error=str(e))
+        logger.warning(f"Failed to cleanup temp file {path}: {str(e)}")
 
 
 def transcribe_with_whisperx(audio_path: str, language: Optional[str] = None) -> Dict[str, Any]:
@@ -184,7 +179,7 @@ def transcribe_with_whisperx(audio_path: str, language: Optional[str] = None) ->
     start_time = time.time()
     
     # Load audio
-    logger.info("Loading audio file", path=audio_path)
+    logger.info(f"Loading audio file: {audio_path}")
     audio = whisperx.load_audio(audio_path)
     duration = len(audio) / 16000  # WhisperX uses 16kHz sample rate
     
@@ -193,7 +188,7 @@ def transcribe_with_whisperx(audio_path: str, language: Optional[str] = None) ->
         raise ValueError(f"Audio duration ({duration:.1f}s) exceeds maximum allowed ({settings.MAX_AUDIO_DURATION_SECONDS}s)")
     
     # Transcribe
-    logger.info("Transcribing audio", duration=f"{duration:.2f}s")
+    logger.info(f"Transcribing audio, duration: {duration:.2f}s")
     result = model.transcribe(
         audio,
         batch_size=settings.WHISPER_BATCH_SIZE,
@@ -243,11 +238,7 @@ def transcribe_with_whisperx(audio_path: str, language: Optional[str] = None) ->
     
     processing_time = time.time() - start_time
     
-    logger.info(
-        "Transcription complete",
-        word_count=len(words),
-        processing_time=f"{processing_time:.2f}s"
-    )
+    logger.info(f"Transcription complete: {len(words)} words in {processing_time:.2f}s")
     
     return {
         "transcript": " ".join(full_transcript),
@@ -326,7 +317,7 @@ async def run_service_logic(file=None, audio_url: str = None, language: str = No
         return result
         
     except Exception as e:
-        logger.error("ASR processing failed", error=str(e))
+        logger.error(f"ASR processing failed: {str(e)}")
         raise
         
     finally:

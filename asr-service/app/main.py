@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
             get_model()
             logger.info("WhisperX model preloaded successfully")
         except Exception as e:
-            logger.error("Failed to preload model", error=str(e))
+            logger.error(f"Failed to preload model: {str(e)}")
             # Don't fail startup - service can still work in degraded mode
     else:
         logger.info("Running in MOCK_MODE - model not loaded")

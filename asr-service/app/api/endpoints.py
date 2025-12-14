@@ -41,12 +41,7 @@ async def process_audio_file(
     Supported formats: wav, mp3, m4a, webm, ogg, flac
     """
     try:
-        logger.info(
-            "Processing audio file",
-            filename=file.filename,
-            content_type=file.content_type,
-            language=language
-        )
+        logger.info(f"Processing audio file: {file.filename}, content_type: {file.content_type}, language: {language}")
         
         # Validate file type
         if file.filename:
@@ -61,10 +56,10 @@ async def process_audio_file(
         return ASRResponse(**result)
         
     except ValueError as e:
-        logger.warning("Validation error", error=str(e))
+        logger.warning(f"Validation error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
-        logger.error("Runtime error", error=str(e))
+        logger.error(f"Runtime error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.exception("Unexpected error during transcription")
@@ -89,11 +84,7 @@ async def process_audio_url(request: ASRRequest):
     Supported formats: wav, mp3, m4a, webm, ogg, flac
     """
     try:
-        logger.info(
-            "Processing audio from URL",
-            url=str(request.audio_url),
-            language=request.language
-        )
+        logger.info(f"Processing audio from URL: {request.audio_url}, language: {request.language}")
         
         result = await run_service_logic(
             audio_url=str(request.audio_url),
@@ -102,10 +93,10 @@ async def process_audio_url(request: ASRRequest):
         return ASRResponse(**result)
         
     except ValueError as e:
-        logger.warning("Validation error", error=str(e))
+        logger.warning(f"Validation error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
-        logger.error("Runtime error", error=str(e))
+        logger.error(f"Runtime error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.exception("Unexpected error during transcription")
