@@ -18,6 +18,24 @@ from app.core.config import settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Fix for PyTorch 2.6+ weights_only default change
+# This allows loading models that use omegaconf (like pyannote/WhisperX)
+try:
+    from omegaconf import DictConfig, ListConfig
+    torch.serialization.add_safe_globals([DictConfig, ListConfig])
+    logger.info("Added omegaconf classes to torch safe globals")
+except ImportError:
+    pass
+
+# Alternative: Monkey-patch torch.load to use weights_only=False for WhisperX models
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    # If weights_only not specified, set to False for backward compatibility
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
 # Global model instance (singleton pattern)
 _whisperx_model = None
 _align_model = None
