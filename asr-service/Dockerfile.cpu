@@ -1,26 +1,20 @@
-# ASR Service Dockerfile - GPU Optimized
-# Uses NVIDIA CUDA for GPU acceleration
+# ASR Service Dockerfile - CPU Only
+# Use this when GPU is not available
 
-# Use NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:11.8-cudnn8-runtime-ubuntu22.04
+FROM python:3.10-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DEBIAN_FRONTEND=noninteractive
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.10 \
-    python3.10-venv \
-    python3-pip \
     ffmpeg \
     git \
     curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.10 /usr/bin/python
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -31,9 +25,9 @@ RUN mkdir -p /models_cache /tmp/asr_temp && chmod 777 /models_cache /tmp/asr_tem
 # Copy requirements first for better caching
 COPY requirements.txt requirements.txt
 
-# Install PyTorch with CUDA support first
+# Install PyTorch (CPU version)
 RUN pip install --upgrade pip && \
-    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -54,4 +48,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
