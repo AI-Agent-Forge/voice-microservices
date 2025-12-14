@@ -31,9 +31,9 @@ RUN mkdir -p /models_cache /tmp/asr_temp && chmod 777 /models_cache /tmp/asr_tem
 # Copy requirements first for better caching
 COPY requirements.txt requirements.txt
 
-# Install PyTorch with CUDA support first
+# Install PyTorch 2.5.1 with CUDA support (avoiding 2.6+ weights_only breaking change)
 RUN pip install --upgrade pip && \
-    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118
 
 # Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt

@@ -12,9 +12,10 @@ pydantic-settings>=2.1.0
 whisperx>=3.1.1
 
 # PyTorch (with CUDA 11.8 support - install separately if needed)
+# Pin to 2.5.x to avoid weights_only=True default change in 2.6
 # pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
-torch>=2.0.0
-torchaudio>=2.0.0
+torch>=2.0.0,<2.6.0
+torchaudio>=2.0.0,<2.6.0
 
 # Audio Processing
 numpy>=1.24.0
