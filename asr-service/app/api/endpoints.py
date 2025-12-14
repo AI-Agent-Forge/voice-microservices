@@ -6,7 +6,7 @@ Supports both file upload and audio URL processing
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from typing import Optional
-import structlog
+import logging
 
 from app.services.logic import run_service_logic, is_model_loaded, get_gpu_info
 from app.schemas.request_response import (
@@ -17,7 +17,7 @@ from app.schemas.request_response import (
 )
 from app.core.config import settings
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 

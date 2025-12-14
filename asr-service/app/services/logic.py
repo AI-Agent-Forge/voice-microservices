@@ -11,12 +11,12 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import httpx
 import torch
-import structlog
+import logging
 
 from app.core.config import settings
 
-# Configure structured logging
-logger = structlog.get_logger(__name__)
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Global model instance (singleton pattern)
 _whisperx_model = None

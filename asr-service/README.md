@@ -17,13 +17,13 @@ The ASR (Automatic Speech Recognition) Service provides audio transcription with
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Basic health check |
-| `/process/` | POST | Process uploaded audio file |
-| `/process/url` | POST | Process audio from URL |
-| `/process/health` | GET | Detailed health check |
-| `/process/info` | GET | Service configuration info |
+| Endpoint          | Method | Description                 |
+| ----------------- | ------ | --------------------------- |
+| `/health`         | GET    | Basic health check          |
+| `/process/`       | POST   | Process uploaded audio file |
+| `/process/url`    | POST   | Process audio from URL      |
+| `/process/health` | GET    | Detailed health check       |
+| `/process/info`   | GET    | Service configuration info  |
 
 ## Quick Start
 
@@ -109,25 +109,25 @@ curl -X POST "http://localhost:8001/process/url" \
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WHISPER_MODEL` | `base` | Model size: tiny, base, small, medium, large-v2, large-v3 |
-| `WHISPER_COMPUTE_TYPE` | `float16` | Compute type: float16 (GPU), int8 (CPU) |
-| `WHISPER_BATCH_SIZE` | `16` | Batch size (reduce if OOM) |
-| `WHISPER_LANGUAGE` | `en` | Default language (None for auto-detect) |
-| `MOCK_MODE` | `false` | Enable mock mode for testing |
-| `MAX_AUDIO_DURATION_SECONDS` | `600` | Max audio length (10 min) |
+| Variable                     | Default   | Description                                               |
+| ---------------------------- | --------- | --------------------------------------------------------- |
+| `WHISPER_MODEL`              | `base`    | Model size: tiny, base, small, medium, large-v2, large-v3 |
+| `WHISPER_COMPUTE_TYPE`       | `float16` | Compute type: float16 (GPU), int8 (CPU)                   |
+| `WHISPER_BATCH_SIZE`         | `16`      | Batch size (reduce if OOM)                                |
+| `WHISPER_LANGUAGE`           | `en`      | Default language (None for auto-detect)                   |
+| `MOCK_MODE`                  | `false`   | Enable mock mode for testing                              |
+| `MAX_AUDIO_DURATION_SECONDS` | `600`     | Max audio length (10 min)                                 |
 
 ### Model Selection Guide
 
-| Model | VRAM Required | Speed | Accuracy |
-|-------|---------------|-------|----------|
-| tiny | ~1 GB | Fastest | Basic |
-| base | ~1 GB | Fast | Good |
-| small | ~2 GB | Medium | Better |
-| medium | ~5 GB | Slow | Very Good |
-| large-v2 | ~10 GB | Slowest | Excellent |
-| large-v3 | ~10 GB | Slowest | Best |
+| Model    | VRAM Required | Speed   | Accuracy  |
+| -------- | ------------- | ------- | --------- |
+| tiny     | ~1 GB         | Fastest | Basic     |
+| base     | ~1 GB         | Fast    | Good      |
+| small    | ~2 GB         | Medium  | Better    |
+| medium   | ~5 GB         | Slow    | Very Good |
+| large-v2 | ~10 GB        | Slowest | Excellent |
+| large-v3 | ~10 GB        | Slowest | Best      |
 
 ## Project Structure
 
@@ -158,14 +158,17 @@ asr-service/
 ### Common Issues
 
 1. **Out of Memory (OOM)**
+
    - Reduce `WHISPER_BATCH_SIZE` to 8 or 4
    - Use a smaller model (tiny or base)
 
 2. **Model Download Fails**
+
    - Check internet connection
    - Set `HF_TOKEN` if accessing gated models
 
 3. **No GPU Detected**
+
    - Ensure NVIDIA drivers are installed
    - Check `nvidia-smi` works
    - Verify Docker has GPU access
@@ -185,5 +188,6 @@ DEBUG=true uvicorn app.main:app --reload
 ## Next Steps
 
 After ASR processing, the transcript goes to:
+
 1. **Alignment Service** - For phoneme-level alignment
 2. **Phoneme Map Service** - For target pronunciation lookup
