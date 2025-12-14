@@ -108,6 +108,6 @@ def root():
 
 
 # Include the main processing router
-app.include_router(router, prefix="/process", tags=["ASR Processing"])
+app.include_router(router, prefix="/asr", tags=["ASR Processing"])
 
 

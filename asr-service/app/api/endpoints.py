@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/",
+    "/process",
     response_model=ASRResponse,
     responses={
         400: {"model": ErrorResponse, "description": "Bad Request"},
