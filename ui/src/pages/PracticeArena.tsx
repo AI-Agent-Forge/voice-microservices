@@ -8,7 +8,8 @@ import WaveformVisualizer from '../components/WaveformVisualizer'
 import ScriptSelector from '../components/ScriptSelector'
 import RecordingTimer from '../components/RecordingTimer'
 import { saveAudio } from '../services/audioStorage'
-import { transcribeAudio, ASRResponse } from '../services/asr'
+import { transcribeAudio } from '../services/asr'
+import type { ASRResponse } from '../services/asr'
 import { logger } from '../stores/debug'
 
 export default function PracticeArena() {
