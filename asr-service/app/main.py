@@ -3,6 +3,28 @@ ASR Service - Automatic Speech Recognition with WhisperX
 FastAPI application for audio transcription with word-level timestamps
 """
 
+# ============================================================
+# CRITICAL: PyTorch 2.6+ Compatibility Patch
+# Must be applied BEFORE any other imports that use torch.load
+# This fixes the weights_only=True default that breaks pyannote/WhisperX
+# ============================================================
+import torch
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
+# Also add safe globals for omegaconf (used by pyannote)
+try:
+    from omegaconf import DictConfig, ListConfig
+    from omegaconf.base import ContainerMetadata
+    torch.serialization.add_safe_globals([DictConfig, ListConfig, ContainerMetadata])
+except ImportError:
+    pass
+# ============================================================
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
