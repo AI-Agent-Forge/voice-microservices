@@ -1,8 +1,8 @@
 # ASR Service Dockerfile - GPU Optimized
 # Uses NVIDIA CUDA for GPU acceleration
 
-# Use NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+# Use NVIDIA CUDA 12.1 base image for GPU support (required by ctranslate2/whisperx)
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -31,9 +31,9 @@ RUN mkdir -p /models_cache /tmp/asr_temp && chmod 777 /models_cache /tmp/asr_tem
 # Copy requirements first for better caching
 COPY requirements.txt requirements.txt
 
-# Install PyTorch 2.5.1 with CUDA support (avoiding 2.6+ weights_only breaking change)
+# Install PyTorch 2.5.1 with CUDA 12.1 support
 RUN pip install --upgrade pip && \
-    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118
+    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 
 # Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
