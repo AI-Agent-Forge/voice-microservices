@@ -1,12 +1,38 @@
-fastapi
-uvicorn
-pydantic
-pydantic-settings
-numpy
-librosa
-python-multipart
-boto3
-requests
-openai-whisper
-torch
-ffmpeg-python
+# FastAPI Core
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Pydantic
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# WhisperX - Production ASR with accurate word timestamps
+# Note: Install torch first with CUDA support for GPU
+whisperx>=3.1.1
+
+# PyTorch (with CUDA 11.8 support - install separately if needed)
+# Pin to 2.5.x to avoid weights_only=True default change in 2.6
+# pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+torch>=2.0.0,<2.6.0
+torchaudio>=2.0.0,<2.6.0
+
+# Audio Processing
+numpy>=1.24.0
+librosa>=0.10.0
+soundfile>=0.12.0
+ffmpeg-python>=0.2.0
+pydub>=0.25.1
+
+# Storage & HTTP
+boto3>=1.28.0
+requests>=2.31.0
+httpx>=0.25.0
+aiofiles>=23.2.1
+
+# Logging
+structlog>=23.2.0
+python-json-logger>=2.0.0
+
+# Utils
+python-dotenv>=1.0.0
