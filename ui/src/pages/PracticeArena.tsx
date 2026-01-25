@@ -14,12 +14,12 @@ import { logger } from '../stores/debug'
 
 export default function PracticeArena() {
   const navigate = useNavigate()
-  const { 
-    selectedScript, 
-    isRecording, 
-    recordingTime, 
-    startRecording, 
-    stopRecording, 
+  const {
+    selectedScript,
+    isRecording,
+    recordingTime,
+    startRecording,
+    stopRecording,
     setRecordingTime,
     loadScripts,
     saveSession
@@ -94,17 +94,29 @@ export default function PracticeArena() {
       // Call ASR service
       const asrResult = await transcribeAudio(audioBlob)
       console.log('ASR Result:', asrResult)
-      
+
       // Store transcript result and show it
       setTranscriptResult(asrResult)
       setShowTranscript(true)
+    } catch (error) {
+      logger.error('Analysis failed', error)
+      console.error('Analysis failed:', error)
+      alert('Failed to analyze audio. Please check if the ASR service is running.')
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
 
+  const handleCompleteSession = async () => {
+    if (!audioBlob || !selectedScript || !transcriptResult) return
+
+    try {
       // Create mock analysis result (merging ASR data)
       const sessionId = `session-${Date.now()}`
-      
+
       // Save audio blob to IndexedDB
       await saveAudio(sessionId, audioBlob)
-      
+
       const mockSession = {
         id: sessionId,
         user_id: 'mock-user-123',
@@ -113,38 +125,34 @@ export default function PracticeArena() {
         audio_url: '', // We'll load it from IndexedDB
         created_at: new Date().toISOString(),
         analysis: {
-            transcript: asrResult.transcript,
-            words: asrResult.words.map(w => ({
-                word: w.word,
-                accuracy_score: 90, // Mock score for now
-                phonemes_user: [], 
-                phonemes_target: [],
-                is_stress_error: false,
-                error_severity: 'none'
-            })),
-            feedback: {
-                summary: "Analysis complete. (AI feedback placeholder)",
-                rhythm_comment: "Good pace.",
-                improvements: []
-            },
-            audio_urls: {
-                original: '',
-                tts_us_standard: '',
-                tts_user_clone: ''
-            }
+          transcript: transcriptResult.transcript,
+          words: transcriptResult.words.map(w => ({
+            word: w.word,
+            accuracy_score: 90, // Mock score for now
+            phonemes_user: [],
+            phonemes_target: [],
+            is_stress_error: false,
+            error_severity: 'none'
+          })),
+          feedback: {
+            summary: "Analysis complete. (AI feedback placeholder)",
+            rhythm_comment: "Good pace.",
+            improvements: []
+          },
+          audio_urls: {
+            original: '',
+            tts_us_standard: '',
+            tts_user_clone: ''
+          }
         }
       }
 
       saveSession(mockSession)
-      
+
       // Navigate to review page
       navigate(`/review/${mockSession.id}`)
     } catch (error) {
-      logger.error('Analysis failed', error)
-      console.error('Analysis failed:', error)
-      alert('Failed to analyze audio. Please check if the ASR service is running.')
-    } finally {
-      setIsAnalyzing(false)
+      console.error('Failed to save session:', error)
     }
   }
 
@@ -174,9 +182,9 @@ export default function PracticeArena() {
             <ChevronLeft className="w-5 h-5" />
             <span>Back to Dashboard</span>
           </button>
-          
+
           <h1 className="text-2xl font-bold text-white">Practice Arena</h1>
-          
+
           <button
             onClick={() => setShowScriptSelector(true)}
             className="violet-button"
@@ -188,7 +196,7 @@ export default function PracticeArena() {
 
       <div className="px-6 space-y-8 max-w-5xl mx-auto pb-12">
         {/* Script Display */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="glass-card p-12 relative overflow-hidden"
@@ -205,11 +213,11 @@ export default function PracticeArena() {
                   {selectedScript.category}
                 </span>
               </div>
-              
+
               <h2 className="text-4xl md:text-5xl font-medium text-white mb-8 leading-tight tracking-tight">
                 "{selectedScript.text}"
               </h2>
-              
+
               <div className="inline-block px-8 py-4 bg-slate-900/50 rounded-2xl border border-white/5 backdrop-blur-sm">
                 <p className="font-jetbrains text-xl text-violet-300 tracking-wide">
                   {selectedScript.phonetic_transcription}
@@ -234,7 +242,7 @@ export default function PracticeArena() {
         </motion.div>
 
         {/* Recording Interface */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -250,7 +258,7 @@ export default function PracticeArena() {
             <div className="mb-10 w-full max-w-3xl">
               <WaveformVisualizer isRecording={isRecording} />
             </div>
-            
+
             <div className="flex flex-col items-center space-y-8">
               {/* Timer */}
               <div className="font-jetbrains text-5xl font-light text-white tracking-widest tabular-nums">
@@ -302,24 +310,34 @@ export default function PracticeArena() {
                       >
                         <RotateCcw className="w-6 h-6" />
                       </button>
-                      
-                      <button
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing}
-                        className="violet-button flex items-center space-x-3 px-10 py-5 text-lg shadow-xl shadow-violet-500/20"
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            <span>Analyzing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-5 h-5 fill-current" />
-                            <span>Analyze Recording</span>
-                          </>
-                        )}
-                      </button>
+
+                      {!showTranscript ? (
+                        <button
+                          onClick={handleAnalyze}
+                          disabled={isAnalyzing}
+                          className="violet-button flex items-center space-x-3 px-10 py-5 text-lg shadow-xl shadow-violet-500/20"
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Analyzing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-5 h-5 fill-current" />
+                              <span>Analyze Recording</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleCompleteSession}
+                          className="violet-button flex items-center space-x-3 px-10 py-5 text-lg shadow-xl shadow-violet-500/20"
+                        >
+                          <FileText className="w-5 h-5 fill-current" />
+                          <span>View Full Report</span>
+                        </button>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -343,7 +361,7 @@ export default function PracticeArena() {
               className="glass-card p-8 relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500" />
-              
+
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-2 bg-green-500/10 rounded-lg">
                   <FileText className="w-5 h-5 text-green-400" />
