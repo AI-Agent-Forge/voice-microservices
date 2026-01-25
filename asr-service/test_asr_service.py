@@ -29,7 +29,7 @@ def test_detailed_health():
     """Test detailed health endpoint"""
     print("\n🔍 Testing Detailed Health Endpoint...")
     try:
-        response = requests.get(f"{ASR_SERVICE_URL}/process/health", timeout=10)
+        response = requests.get(f"{ASR_SERVICE_URL}/asr/health", timeout=10)
         print(f"   Status Code: {response.status_code}")
         print(f"   Response: {json.dumps(response.json(), indent=2)}")
         return response.status_code == 200
@@ -42,7 +42,7 @@ def test_service_info():
     """Test service info endpoint"""
     print("\n🔍 Testing Service Info Endpoint...")
     try:
-        response = requests.get(f"{ASR_SERVICE_URL}/process/info", timeout=10)
+        response = requests.get(f"{ASR_SERVICE_URL}/asr/info", timeout=10)
         print(f"   Status Code: {response.status_code}")
         print(f"   Response: {json.dumps(response.json(), indent=2)}")
         return response.status_code == 200
@@ -66,7 +66,7 @@ def test_file_upload(audio_path: str):
             
             start_time = time.time()
             response = requests.post(
-                f"{ASR_SERVICE_URL}/process/",
+                f"{ASR_SERVICE_URL}/asr/process",
                 files=files,
                 data=data,
                 timeout=120
@@ -104,7 +104,7 @@ def test_url_processing(audio_url: str):
         
         start_time = time.time()
         response = requests.post(
-            f"{ASR_SERVICE_URL}/process/url",
+            f"{ASR_SERVICE_URL}/asr/url",
             json=payload,
             timeout=120
         )
