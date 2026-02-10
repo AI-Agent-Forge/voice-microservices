@@ -1,14 +1,39 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.api.endpoints import router
+from app.core.config import settings
+import logging
 
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Alignment Service", version="1.0.0")
+app = FastAPI(
+    title=settings.SERVICE_NAME, 
+    version=settings.SERVICE_VERSION,
+    description="Service for forced alignment of text to audio with phoneme-level timestamps."
+)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "service": settings.SERVICE_NAME,
+        "version": settings.SERVICE_VERSION,
+        "device": settings.DEVICE
+    }
 
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
 
-app.include_router(router, prefix="/process")
+app.include_router(router, prefix="/alignment", tags=["Alignment"])
 
