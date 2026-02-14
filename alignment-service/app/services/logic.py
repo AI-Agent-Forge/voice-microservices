@@ -278,9 +278,10 @@ async def run_service_logic(req) -> Dict[str, Any]:
     
     user_audio_path = ""
     is_temp_file = False
+    audio_duration = 0.0
     
     try:
-        # 1. Load Audio
+        # 1. Determine audio duration - either from audio_url or from word timestamps
         if hasattr(req, "audio_url") and req.audio_url:
             logger.info(f"Downloading audio from: {req.audio_url}")
             
@@ -298,14 +299,23 @@ async def run_service_logic(req) -> Dict[str, Any]:
                     user_audio_path = tmp.name
                     is_temp_file = True
                     logger.info(f"Audio downloaded to: {user_audio_path}")
+            
+            # Get audio duration from file
+            audio_duration = get_audio_duration(user_audio_path)
+        elif req.words and len(req.words) > 0:
+            # No audio URL but we have word timestamps - compute duration from words
+            audio_duration = max(w.end for w in req.words) if req.words else 0.0
+            logger.info(f"No audio_url provided, using word timestamps to compute duration: {audio_duration:.3f}s")
         else:
-            raise ValueError("No audio_url provided")
+            # No audio and no words - use a default duration estimate
+            # Estimate ~0.3 seconds per word
+            word_count = len(req.transcript.split())
+            audio_duration = word_count * 0.3
+            logger.warning(f"No audio_url or words provided, estimating duration: {audio_duration:.3f}s")
         
-        # 2. Get audio duration
-        audio_duration = get_audio_duration(user_audio_path)
         logger.info(f"Audio duration: {audio_duration:.3f} seconds")
         
-        # 3. Perform alignment
+        # 2. Perform alignment
         if req.words and len(req.words) > 0:
             # Use word boundaries for accurate alignment
             phonemes = align_with_word_boundaries(
@@ -320,7 +330,7 @@ async def run_service_logic(req) -> Dict[str, Any]:
                 audio_duration=audio_duration
             )
         
-        # 4. Build response
+        # 3. Build response
         logger.info("=" * 50)
         logger.info(f"ALIGNMENT COMPLETE")
         logger.info(f"Phonemes generated: {len(phonemes)}")

@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReactMediaRecorder } from 'react-media-recorder'
 import { usePracticeStore } from '../stores/practice'
-import { Mic, Square, Play, Pause, RotateCcw, ChevronLeft, FileText } from 'lucide-react'
+import { Mic, Square, Play, Pause, RotateCcw, ChevronLeft, FileText, CheckCircle, AlertTriangle } from 'lucide-react'
 import WaveformVisualizer from '../components/WaveformVisualizer'
 import ScriptSelector from '../components/ScriptSelector'
 import RecordingTimer from '../components/RecordingTimer'
 import { saveAudio } from '../services/audioStorage'
-import { transcribeAudio } from '../services/asr'
-import type { ASRResponse } from '../services/asr'
+import { runFullPipeline, calculateScore, generateFeedback, type PipelineResponse } from '../services/pipeline'
 import { logger } from '../stores/debug'
 
 export default function PracticeArena() {
@@ -28,8 +27,9 @@ export default function PracticeArena() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showScriptSelector, setShowScriptSelector] = useState(false)
-  const [transcriptResult, setTranscriptResult] = useState<ASRResponse | null>(null)
-  const [showTranscript, setShowTranscript] = useState(false)
+  const [pipelineResult, setPipelineResult] = useState<PipelineResponse | null>(null)
+  const [showResults, setShowResults] = useState(false)
+  const [analysisStep, setAnalysisStep] = useState<string>('')
 
   const {
     status,
@@ -88,56 +88,95 @@ export default function PracticeArena() {
     if (!audioBlob || !selectedScript) return
 
     setIsAnalyzing(true)
-    logger.info('Starting analysis...', { script: selectedScript.title })
+    setAnalysisStep('Starting analysis...')
+    logger.info('Starting full pipeline analysis...', { script: selectedScript.title })
 
     try {
-      // Call ASR service
-      const asrResult = await transcribeAudio(audioBlob)
-      console.log('ASR Result:', asrResult)
+      // Run the complete 4-service pipeline
+      setAnalysisStep('Transcribing speech (ASR)...')
+      const result = await runFullPipeline(audioBlob, selectedScript.text)
+      console.log('Pipeline Result:', result)
 
-      // Store transcript result and show it
-      setTranscriptResult(asrResult)
-      setShowTranscript(true)
+      // Store full pipeline result
+      setPipelineResult(result)
+      setShowResults(true)
+      setAnalysisStep('')
     } catch (error) {
-      logger.error('Analysis failed', error)
+      logger.error('Pipeline analysis failed', error)
       console.error('Analysis failed:', error)
-      alert('Failed to analyze audio. Please check if the ASR service is running.')
+      alert('Failed to analyze audio. Please check if all services are running (ASR:8001, Alignment:8002, Phoneme-Map:8003, Phoneme-Diff:8004).')
     } finally {
       setIsAnalyzing(false)
+      setAnalysisStep('')
     }
   }
 
   const handleCompleteSession = async () => {
-    if (!audioBlob || !selectedScript || !transcriptResult) return
+    if (!audioBlob || !selectedScript || !pipelineResult) return
 
     try {
-      // Create mock analysis result (merging ASR data)
       const sessionId = `session-${Date.now()}`
 
       // Save audio blob to IndexedDB
       await saveAudio(sessionId, audioBlob)
 
-      const mockSession = {
+      // Calculate overall score from phoneme diff results
+      const overallScore = calculateScore(pipelineResult.phonemeDiff)
+
+      // Build word analysis from pipeline data
+      const wordAnalysis = pipelineResult.asr.words.map(w => {
+        // Find the comparison result for this word
+        const comparison = pipelineResult.phonemeDiff.comparisons.find(
+          c => c.word.toLowerCase() === w.word.toLowerCase()
+        )
+
+        // Calculate accuracy based on severity
+        let accuracyScore = 100
+        if (comparison) {
+          switch (comparison.severity) {
+            case 'low': accuracyScore = 85; break
+            case 'medium': accuracyScore = 65; break
+            case 'high': accuracyScore = 40; break
+          }
+        }
+
+        return {
+          word: w.word,
+          start: w.start,
+          end: w.end,
+          accuracy_score: accuracyScore,
+          phonemes_user: comparison?.user || pipelineResult.phonemeMap.map[w.word.toLowerCase()] || [],
+          phonemes_target: comparison?.target || pipelineResult.phonemeMap.map[w.word.toLowerCase()] || [],
+          is_stress_error: comparison?.issue?.includes('stress') || false,
+          error_severity: comparison?.severity || 'none',
+          diff_details: comparison
+        }
+      })
+
+      // Generate improvements from phoneme diff
+      const improvements = pipelineResult.phonemeDiff.comparisons
+        .filter(c => c.severity !== 'none')
+        .slice(0, 5)
+        .map(c => `${c.word}: ${c.notes || c.issue}`)
+
+      const session = {
         id: sessionId,
-        user_id: 'mock-user-123',
+        user_id: 'user-123',
         script_text: selectedScript.text,
-        overall_score: Math.floor(Math.random() * 30) + 70, // Random score 70-100
-        audio_url: '', // We'll load it from IndexedDB
+        overall_score: overallScore,
+        audio_url: '',
         created_at: new Date().toISOString(),
+        pipeline: pipelineResult,
         analysis: {
-          transcript: transcriptResult.transcript,
-          words: transcriptResult.words.map(w => ({
-            word: w.word,
-            accuracy_score: 90, // Mock score for now
-            phonemes_user: [],
-            phonemes_target: [],
-            is_stress_error: false,
-            error_severity: 'none'
-          })),
+          transcript: pipelineResult.asr.transcript,
+          overall_score: overallScore,
+          words: wordAnalysis,
+          alignmentPhonemes: pipelineResult.alignment.phonemes,
+          pipeline: pipelineResult,
           feedback: {
-            summary: "Analysis complete. (AI feedback placeholder)",
-            rhythm_comment: "Good pace.",
-            improvements: []
+            summary: `Analyzed ${pipelineResult.asr.words.length} words. ${pipelineResult.phonemeDiff.comparisons.filter(c => c.severity === 'none').length} pronounced correctly.`,
+            rhythm_comment: `Audio duration: ${pipelineResult.alignment.audio_duration?.toFixed(1) || 'N/A'}s`,
+            improvements
           },
           audio_urls: {
             original: '',
@@ -147,10 +186,8 @@ export default function PracticeArena() {
         }
       }
 
-      saveSession(mockSession)
-
-      // Navigate to review page
-      navigate(`/review/${mockSession.id}`)
+      saveSession(session)
+      navigate(`/review/${session.id}`)
     } catch (error) {
       console.error('Failed to save session:', error)
     }
@@ -160,8 +197,8 @@ export default function PracticeArena() {
     clearBlobUrl()
     setAudioBlob(null)
     setRecordingTime(0)
-    setTranscriptResult(null)
-    setShowTranscript(false)
+    setPipelineResult(null)
+    setShowResults(false)
   }
 
   const formatTime = (seconds: number) => {
@@ -311,7 +348,7 @@ export default function PracticeArena() {
                         <RotateCcw className="w-6 h-6" />
                       </button>
 
-                      {!showTranscript ? (
+                      {!showResults ? (
                         <button
                           onClick={handleAnalyze}
                           disabled={isAnalyzing}
@@ -320,7 +357,7 @@ export default function PracticeArena() {
                           {isAnalyzing ? (
                             <>
                               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              <span>Analyzing...</span>
+                              <span>{analysisStep || 'Analyzing...'}</span>
                             </>
                           ) : (
                             <>
@@ -350,42 +387,38 @@ export default function PracticeArena() {
           </div>
         </motion.div>
 
-        {/* Transcript Display */}
+        {/* Pipeline Results Display */}
         <AnimatePresence>
-          {showTranscript && transcriptResult && (
+          {showResults && pipelineResult && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ delay: 0.1 }}
-              className="glass-card p-8 relative overflow-hidden"
+              className="space-y-6"
             >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500" />
+              {/* ASR Transcript Section */}
+              <div className="glass-card p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500" />
 
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <FileText className="w-5 h-5 text-green-400" />
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">ASR Transcription</h3>
+                  <span className="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-bold rounded-full uppercase">
+                    {pipelineResult.asr.language}
+                  </span>
                 </div>
-                <h3 className="text-xl font-bold text-white">Transcription Result</h3>
-                <span className="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-bold rounded-full uppercase">
-                  {transcriptResult.language}
-                </span>
-              </div>
 
-              {/* Main Transcript */}
-              <div className="bg-slate-900/50 rounded-xl p-6 mb-6 border border-white/5">
-                <p className="text-2xl text-white leading-relaxed">
-                  "{transcriptResult.transcript}"
-                </p>
-              </div>
+                <div className="bg-slate-900/50 rounded-xl p-6 mb-6 border border-white/5">
+                  <p className="text-2xl text-white leading-relaxed">
+                    "{pipelineResult.asr.transcript}"
+                  </p>
+                </div>
 
-              {/* Word Timestamps */}
-              <div className="mb-4">
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                  Word-Level Timestamps
-                </h4>
                 <div className="flex flex-wrap gap-2">
-                  {transcriptResult.words.map((word, index) => (
+                  {pipelineResult.asr.words.map((word, index) => (
                     <div
                       key={index}
                       className="group relative px-3 py-2 bg-slate-800/50 rounded-lg border border-white/5 hover:border-violet-500/30 hover:bg-violet-500/10 transition-all cursor-default"
@@ -396,9 +429,6 @@ export default function PracticeArena() {
                           <span className="text-violet-400">{word.start.toFixed(2)}s</span>
                           <span className="text-slate-500 mx-1">→</span>
                           <span className="text-violet-400">{word.end.toFixed(2)}s</span>
-                          {word.confidence && (
-                            <span className="ml-2 text-green-400">({(word.confidence * 100).toFixed(0)}%)</span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -406,15 +436,103 @@ export default function PracticeArena() {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="flex items-center space-x-6 text-sm text-slate-400">
-                {transcriptResult.duration && (
-                  <span>Duration: <span className="text-white">{transcriptResult.duration.toFixed(1)}s</span></span>
-                )}
-                {transcriptResult.processing_time && (
-                  <span>Processed in: <span className="text-green-400">{transcriptResult.processing_time.toFixed(2)}s</span></span>
-                )}
-                <span>Words: <span className="text-white">{transcriptResult.words.length}</span></span>
+              {/* Phoneme Mapping Section */}
+              <div className="glass-card p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-violet-500" />
+
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="p-2 bg-violet-500/10 rounded-lg">
+                    <FileText className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Phoneme Mapping (ARPAbet)</h3>
+                  <span className="px-2 py-1 bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold rounded-full">
+                    {Object.keys(pipelineResult.phonemeMap.map).length} words mapped
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {Object.entries(pipelineResult.phonemeMap.map).slice(0, 12).map(([word, phonemes]) => (
+                    <div key={word} className="bg-slate-900/50 rounded-lg p-4 border border-white/5">
+                      <div className="text-white font-medium mb-2">{word}</div>
+                      <div className="font-mono text-sm text-violet-400">
+                        {phonemes.join(' ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Phoneme Diff / Pronunciation Issues Section */}
+              <div className="glass-card p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
+
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Pronunciation Analysis</h3>
+                  <span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold rounded-full">
+                    {pipelineResult.phonemeDiff.comparisons.filter(c => c.severity !== 'none').length} issues found
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {pipelineResult.phonemeDiff.comparisons.map((comparison, index) => {
+                    const severityColors = {
+                      none: 'border-green-500/30 bg-green-500/5',
+                      low: 'border-yellow-500/30 bg-yellow-500/5',
+                      medium: 'border-orange-500/30 bg-orange-500/5',
+                      high: 'border-red-500/30 bg-red-500/5'
+                    }
+                    const severityText = {
+                      none: 'text-green-400',
+                      low: 'text-yellow-400',
+                      medium: 'text-orange-400',
+                      high: 'text-red-400'
+                    }
+
+                    return (
+                      <div
+                        key={index}
+                        className={`rounded-lg p-4 border ${severityColors[comparison.severity]}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-bold text-lg">{comparison.word}</span>
+                          <span className={`text-xs font-bold uppercase ${severityText[comparison.severity]}`}>
+                            {comparison.severity === 'none' ? 'Correct' : comparison.severity}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-slate-400">Your pronunciation:</span>
+                            <div className="font-mono text-violet-400 mt-1">
+                              {comparison.user.join(' ') || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Target:</span>
+                            <div className="font-mono text-green-400 mt-1">
+                              {comparison.target.join(' ') || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        {comparison.notes && (
+                          <div className="mt-2 text-sm text-slate-400">
+                            {comparison.notes}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Overall Score Preview */}
+                <div className="mt-6 p-4 bg-slate-900/50 rounded-xl border border-white/5 text-center">
+                  <div className="text-slate-400 text-sm mb-1">Preliminary Score</div>
+                  <div className="text-4xl font-bold text-white">
+                    {calculateScore(pipelineResult.phonemeDiff)}%
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

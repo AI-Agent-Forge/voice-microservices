@@ -18,65 +18,41 @@ export default function ReviewSession() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null)
 
-  // Mock analysis data
-  const mockAnalysis = {
-    transcript: "Good morning! How are you doing today? I hope you are having a wonderful day.",
-    overall_score: 85,
-    words: [
-      {
-        word: "Good",
-        accuracy_score: 95,
-        phonemes_user: ["/ɡ/", "/ʊ/", "/d/"],
-        phonemes_target: ["/ɡ/", "/ʊ/", "/d/"],
-        is_stress_error: false,
-        error_severity: "none"
-      },
-      {
-        word: "morning",
-        accuracy_score: 78,
-        phonemes_user: ["/m/", "/ɔː/", "/r/", "/n/", "/ɪ/", "/ŋ/"],
-        phonemes_target: ["/m/", "/ɔː/", "/r/", "/n/", "/ɪ/", "/ŋ/"],
-        is_stress_error: true,
-        error_severity: "medium"
-      },
-      {
-        word: "How",
-        accuracy_score: 92,
-        phonemes_user: ["/h/", "/aʊ/"],
-        phonemes_target: ["/h/", "/aʊ/"],
-        is_stress_error: false,
-        error_severity: "none"
-      }
-    ],
+  // Fallback analysis data (used only if no real data available)
+  const fallbackAnalysis = {
+    transcript: selectedScript?.text || "No transcript available",
+    overall_score: 0,
+    words: [],
     audio_urls: {
-      original: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg",
-      tts_us_standard: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg",
-      tts_user_clone: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"
+      original: "",
+      tts_us_standard: "",
+      tts_user_clone: ""
     },
     feedback: {
-      summary: "Great job! Your pronunciation is clear and understandable. Focus on the stress patterns in 'morning' and 'wonderful'.",
-      rhythm_comment: "Your rhythm is generally good, but pay attention to word stress in longer words.",
-      improvements: [
-        "Practice the stress pattern in 'morning' - stress the first syllable",
-        "Work on the 'w' sound in 'wonderful' - make sure your lips are rounded",
-        "Try to maintain consistent rhythm throughout the sentence"
-      ]
+      summary: "No analysis data available. Please record and analyze again.",
+      rhythm_comment: "",
+      improvements: []
     }
   }
 
   useEffect(() => {
-    // Find the session by ID or use mock data
-    const session = sessions.find((s: any) => s.id === sessionId) || {
-      id: sessionId,
-      user_id: 'mock-user-123',
-      script_text: selectedScript?.text || "Good morning! How are you doing today? I hope you are having a wonderful day.",
-      overall_score: 85,
-      audio_url: 'mock-audio-url',
-      created_at: new Date().toISOString(),
-      analysis: mockAnalysis
+    // Find the session by ID - use real data from sessions store
+    const session = sessions.find((s: any) => s.id === sessionId)
+
+    if (session) {
+      setCurrentSession(session)
+    } else {
+      // Fallback if session not found
+      setCurrentSession({
+        id: sessionId,
+        user_id: 'unknown',
+        script_text: selectedScript?.text || "",
+        overall_score: 0,
+        audio_url: '',
+        created_at: new Date().toISOString(),
+        analysis: fallbackAnalysis
+      })
     }
-    
-    setCurrentSession(session)
   }, [sessionId, sessions, selectedScript])
 
   useEffect(() => {
@@ -90,7 +66,7 @@ export default function ReviewSession() {
       }
     }
     loadAudio()
-    
+
     return () => {
       if (userAudioUrl) {
         URL.revokeObjectURL(userAudioUrl)
@@ -126,9 +102,9 @@ export default function ReviewSession() {
             <ChevronLeft className="w-5 h-5" />
             <span>Back to Dashboard</span>
           </button>
-          
+
           <h1 className="text-2xl font-bold text-white">Session Review</h1>
-          
+
           <div className="text-right">
             <p className="text-slate-400 text-sm">Overall Score</p>
             <p className="text-2xl font-bold text-white">{currentSession.overall_score}</p>
@@ -140,7 +116,7 @@ export default function ReviewSession() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Score & Overview */}
           <div className="space-y-8">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="glass-card p-8 text-center relative overflow-hidden"
@@ -150,8 +126,8 @@ export default function ReviewSession() {
               <div className="mt-8">
                 <h2 className="text-3xl font-bold text-white mb-3">
                   {currentSession.overall_score >= 90 ? "Outstanding!" :
-                   currentSession.overall_score >= 80 ? "Excellent Work!" :
-                   currentSession.overall_score >= 70 ? "Good Effort!" : "Keep Practicing!"}
+                    currentSession.overall_score >= 80 ? "Excellent Work!" :
+                      currentSession.overall_score >= 70 ? "Good Effort!" : "Keep Practicing!"}
                 </h2>
                 <p className="text-slate-400 leading-relaxed">
                   {currentSession.analysis?.feedback.summary}
@@ -160,7 +136,7 @@ export default function ReviewSession() {
             </motion.div>
 
             {/* AI Feedback Card */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
@@ -186,7 +162,7 @@ export default function ReviewSession() {
           {/* Right Column: Detailed Analysis */}
           <div className="lg:col-span-2 space-y-8">
             {/* Custom Tabs */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="glass-card p-1.5 flex space-x-1 sticky top-6 z-20 backdrop-blur-xl bg-slate-900/80"
@@ -199,11 +175,10 @@ export default function ReviewSession() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-medium relative overflow-hidden ${
-                    activeTab === tab.id
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-medium relative overflow-hidden ${activeTab === tab.id
                       ? 'text-white shadow-lg'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   {activeTab === tab.id && (
                     <motion.div
@@ -249,10 +224,10 @@ export default function ReviewSession() {
                         </span>
                       </div>
                     </div>
-                    <TextDiff 
+                    <TextDiff
                       originalText={currentSession.script_text}
-                      userTranscript={mockAnalysis.transcript}
-                      wordAnalysis={mockAnalysis.words}
+                      userTranscript={currentSession.analysis?.transcript || ''}
+                      wordAnalysis={currentSession.analysis?.words || []}
                     />
                   </div>
                 )}
@@ -260,7 +235,7 @@ export default function ReviewSession() {
                 {activeTab === 'audio' && (
                   <div className="space-y-6">
                     <h3 className="text-xl font-bold text-white mb-6">Compare Your Voice</h3>
-                    <AudioPlayer 
+                    <AudioPlayer
                       audioUrls={audioUrls}
                       isPlaying={isPlaying}
                       onPlayPause={setIsPlaying}
@@ -271,8 +246,9 @@ export default function ReviewSession() {
                 {activeTab === 'phonetic' && (
                   <div className="space-y-6">
                     <h3 className="text-xl font-bold text-white mb-6">Detailed Phonetic Breakdown</h3>
-                    <PhoneticAnalysis 
-                      wordAnalysis={mockAnalysis.words}
+                    <PhoneticAnalysis
+                      wordAnalysis={currentSession.analysis?.words || []}
+                      pipeline={currentSession.pipeline}
                     />
                   </div>
                 )}
