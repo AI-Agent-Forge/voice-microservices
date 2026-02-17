@@ -1,17 +1,21 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException
 from app.services.logic import run_service_logic
+from app.schemas.request_response import AlignmentRequest, AlignmentResponse
+import logging
 
-
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
-class AlignmentRequest(BaseModel):
-    audio_url: str
-    transcript: str
-
-
-@router.post("/")
+@router.post(
+    "/process",
+    response_model=AlignmentResponse,
+    summary="Align Text to Audio",
+    description="Perform forced alignment to get timestamps for transcript characters/phonemes."
+)
 async def process_alignment(req: AlignmentRequest):
-    return await run_service_logic(req)
+    try:
+        return await run_service_logic(req)
+    except Exception as e:
+        logger.error(f"Alignment failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 

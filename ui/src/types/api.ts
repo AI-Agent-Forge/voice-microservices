@@ -1,25 +1,38 @@
 // API Response Types based on technical architecture
+import type {
+  PipelineResponse,
+  ComparisonResult,
+  AlignmentPhoneme
+} from '../services/pipeline'
 
 export interface AudioTimestamps {
   start: number;
   end: number;
 }
 
+// Word analysis combining ASR + phoneme diff data
 export interface WordAnalysis {
   word: string;
-  timestamps: AudioTimestamps;
+  start: number;
+  end: number;
+  confidence?: number;
   accuracy_score: number;
   phonemes_user: string[];
   phonemes_target: string[];
   is_stress_error: boolean;
   error_severity: 'low' | 'medium' | 'high' | 'none';
+  diff_details?: ComparisonResult;
 }
 
 export interface AnalysisResponse {
   transcript: string;
   overall_score: number;
   words: WordAnalysis[];
-  
+
+  // Full pipeline data
+  pipeline?: PipelineResponse;
+  alignmentPhonemes?: AlignmentPhoneme[];
+
   audio_urls: {
     original: string;
     tts_us_standard: string;
@@ -50,6 +63,7 @@ export interface PracticeSession {
   audio_url: string;
   created_at: string;
   analysis?: AnalysisResponse;
+  pipeline?: PipelineResponse;
 }
 
 // Practice Script Types
