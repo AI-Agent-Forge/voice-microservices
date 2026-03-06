@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReactMediaRecorder } from 'react-media-recorder'
 import { usePracticeStore } from '../stores/practice'
-import { Mic, Square, Play, Pause, RotateCcw, ChevronLeft, FileText, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Mic, Square, Play, Pause, RotateCcw, ChevronLeft, FileText, CheckCircle, AlertTriangle, Volume2, VolumeX } from 'lucide-react'
 import WaveformVisualizer from '../components/WaveformVisualizer'
 import ScriptSelector from '../components/ScriptSelector'
 import RecordingTimer from '../components/RecordingTimer'
 import { saveAudio } from '../services/audioStorage'
-import { runFullPipeline, calculateScore, generateFeedback, type PipelineResponse } from '../services/pipeline'
+import { runFullPipeline, calculateScore, generateFeedback, callTTS, type PipelineResponse, type TTSResult } from '../services/pipeline'
 import { logger } from '../stores/debug'
 
 export default function PracticeArena() {
@@ -31,6 +31,12 @@ export default function PracticeArena() {
   const [showResults, setShowResults] = useState(false)
   const [analysisStep, setAnalysisStep] = useState<string>('')
 
+  // TTS State
+  const [ttsAudio, setTtsAudio] = useState<TTSResult | null>(null)
+  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false)
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+
   const {
     status,
     startRecording: startMediaRecording,
@@ -48,6 +54,16 @@ export default function PracticeArena() {
   useEffect(() => {
     loadScripts()
   }, [loadScripts])
+
+  // Clear TTS when script changes
+  useEffect(() => {
+    setTtsAudio(null)
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current = null
+    }
+    setIsPlayingTTS(false)
+  }, [selectedScript])
 
   useEffect(() => {
     if (mediaBlobUrl) {
@@ -82,6 +98,81 @@ export default function PracticeArena() {
     console.log('Stopping recording...')
     stopMediaRecording()
     stopRecording()
+  }
+
+  // Generate TTS reference audio for the selected script
+  const handleGenerateTTS = async () => {
+    if (!selectedScript) return
+
+    setIsGeneratingTTS(true)
+    logger.info('Generating TTS reference audio...', { script: selectedScript.title })
+
+    try {
+      const result = await callTTS(selectedScript.text, 'Kore')
+      setTtsAudio(result)
+      logger.success('TTS reference audio ready', { url: result.accessible_url })
+
+      // Auto-play after generation
+      const audio = new Audio(result.accessible_url)
+      audio.onended = () => setIsPlayingTTS(false)
+      audio.onerror = (e) => {
+        console.error('Failed to play TTS audio:', e)
+        setIsPlayingTTS(false)
+      }
+      ttsAudioRef.current = audio
+      audio.play().then(() => {
+        setIsPlayingTTS(true)
+      }).catch(console.error)
+    } catch (error) {
+      logger.error('TTS generation failed', error)
+      console.error('TTS generation failed:', error)
+      alert('Failed to generate reference audio. Please check if TTS service is running on port 8005.')
+    } finally {
+      setIsGeneratingTTS(false)
+    }
+  }
+
+  // Play/pause TTS reference audio
+  const handlePlayTTS = () => {
+    if (!ttsAudio?.accessible_url) {
+      console.error('No TTS audio URL available')
+      return
+    }
+
+    console.log('Playing TTS audio:', ttsAudio.accessible_url)
+
+    if (!ttsAudioRef.current) {
+      ttsAudioRef.current = new Audio(ttsAudio.accessible_url)
+      ttsAudioRef.current.onended = () => setIsPlayingTTS(false)
+      ttsAudioRef.current.onerror = (e) => {
+        console.error('Failed to play TTS audio:', e)
+        setIsPlayingTTS(false)
+      }
+    }
+
+    if (isPlayingTTS) {
+      ttsAudioRef.current.pause()
+      setIsPlayingTTS(false)
+    } else {
+      // Reset to start if audio ended
+      if (ttsAudioRef.current.ended) {
+        ttsAudioRef.current.currentTime = 0
+      }
+      ttsAudioRef.current.play().then(() => {
+        setIsPlayingTTS(true)
+      }).catch((e) => {
+        console.error('Play failed:', e)
+      })
+    }
+  }
+
+  // Stop TTS playback
+  const handleStopTTS = () => {
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current.currentTime = 0
+      setIsPlayingTTS(false)
+    }
   }
 
   const handleAnalyze = async () => {
@@ -180,7 +271,7 @@ export default function PracticeArena() {
           },
           audio_urls: {
             original: '',
-            tts_us_standard: '',
+            tts_us_standard: pipelineResult.tts?.accessible_url || ttsAudio?.accessible_url || '',
             tts_user_clone: ''
           }
         }
@@ -199,6 +290,9 @@ export default function PracticeArena() {
     setRecordingTime(0)
     setPipelineResult(null)
     setShowResults(false)
+    // Reset TTS state
+    handleStopTTS()
+    setTtsAudio(null)
   }
 
   const formatTime = (seconds: number) => {
@@ -255,10 +349,62 @@ export default function PracticeArena() {
                 "{selectedScript.text}"
               </h2>
 
-              <div className="inline-block px-8 py-4 bg-slate-900/50 rounded-2xl border border-white/5 backdrop-blur-sm">
+              <div className="inline-block px-8 py-4 bg-slate-900/50 rounded-2xl border border-white/5 backdrop-blur-sm mb-6">
                 <p className="font-jetbrains text-xl text-violet-300 tracking-wide">
                   {selectedScript.phonetic_transcription}
                 </p>
+              </div>
+
+              {/* Listen to Reference Button */}
+              <div className="flex justify-center">
+                {!ttsAudio ? (
+                  <button
+                    onClick={handleGenerateTTS}
+                    disabled={isGeneratingTTS}
+                    className="flex items-center space-x-2 px-6 py-3 bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 rounded-full hover:bg-emerald-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingTTS ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-5 h-5" />
+                        <span>Listen to Reference</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={handlePlayTTS}
+                      className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all ${isPlayingTTS
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/30'
+                        }`}
+                    >
+                      {isPlayingTTS ? (
+                        <>
+                          <Pause className="w-5 h-5" />
+                          <span>Pause</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-5 h-5" />
+                          <span>Play Reference</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleStopTTS}
+                      className="p-3 bg-slate-800/50 border border-white/10 text-slate-400 rounded-full hover:bg-slate-700/50 hover:text-white transition-all"
+                      title="Stop"
+                    >
+                      <VolumeX className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -534,6 +680,52 @@ export default function PracticeArena() {
                   </div>
                 </div>
               </div>
+
+              {/* TTS Reference Audio Section */}
+              {(pipelineResult.tts || ttsAudio) && (
+                <div className="glass-card p-8 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-emerald-500/10 rounded-lg">
+                        <Volume2 className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Reference Audio</h3>
+                        <p className="text-slate-400 text-sm">Listen to the correct US pronunciation</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={handlePlayTTS}
+                        className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all ${isPlayingTTS
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/30'
+                          }`}
+                      >
+                        {isPlayingTTS ? (
+                          <>
+                            <Pause className="w-5 h-5" />
+                            <span>Pause</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-5 h-5" />
+                            <span>Play</span>
+                          </>
+                        )}
+                      </button>
+                      {(pipelineResult.tts?.duration || ttsAudio?.duration) && (
+                        <span className="text-slate-400 text-sm">
+                          {((pipelineResult.tts?.duration || ttsAudio?.duration) || 0).toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

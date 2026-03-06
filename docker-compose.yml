@@ -126,6 +126,10 @@ services:
       - STORAGE_ENDPOINT=${MINIO_ENDPOINT}
       - STORAGE_ACCESS_KEY=${MINIO_ROOT_USER}
       - STORAGE_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_TTS_MODEL=${GEMINI_TTS_MODEL:-gemini-2.5-flash-preview-tts}
+      - GEMINI_TTS_VOICE=${GEMINI_TTS_VOICE:-Kore}
+      - MOCK_MODE=${MOCK_MODE:-false}
     ports:
       - "8005:8000"
     volumes:

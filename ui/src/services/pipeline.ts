@@ -1,12 +1,14 @@
 import axios from 'axios'
 import { logger } from '../stores/debug'
 import type { ASRResponse } from './asr'
+import { synthesizeSpeech, getAccessibleAudioUrl, type TTSResponse } from './tts'
 
 // Service URLs
 const ASR_URL = 'http://localhost:8001'
 const ALIGNMENT_URL = 'http://localhost:8002'
 const PHONEME_MAP_URL = 'http://localhost:8003'
 const PHONEME_DIFF_URL = 'http://localhost:8004'
+const TTS_URL = 'http://localhost:8005'
 
 // ============================================================
 // Alignment Service Types
@@ -58,6 +60,16 @@ export interface PhonemeDiffResponse {
 }
 
 // ============================================================
+// TTS Service Types
+// ============================================================
+export interface TTSResult {
+    audio_url: string
+    voice: string
+    duration: number
+    accessible_url: string
+}
+
+// ============================================================
 // Full Pipeline Response
 // ============================================================
 export interface PipelineResponse {
@@ -66,6 +78,7 @@ export interface PipelineResponse {
     phonemeMap: PhonemeMapResponse
     phonemeDiff: PhonemeDiffResponse
     targetText: string
+    tts?: TTSResult
 }
 
 // ============================================================
@@ -143,6 +156,36 @@ export const callPhonemeDiff = async (
     return response.data
 }
 
+/**
+ * Step 5: Generate TTS audio for target text
+ */
+export const callTTS = async (
+    text: string,
+    voice: string = 'Kore'
+): Promise<TTSResult> => {
+    logger.info('Calling TTS service...', { textLength: text.length, voice })
+
+    try {
+        const result = await synthesizeSpeech(text, voice, 'en-US')
+        const accessibleUrl = getAccessibleAudioUrl(result.audio_url)
+
+        logger.success('TTS complete', {
+            duration: result.duration,
+            voice: result.voice
+        })
+
+        return {
+            audio_url: result.audio_url,
+            voice: result.voice,
+            duration: result.duration,
+            accessible_url: accessibleUrl
+        }
+    } catch (error) {
+        logger.error('TTS generation failed', error)
+        throw error
+    }
+}
+
 // ============================================================
 // Full Pipeline
 // ============================================================
@@ -198,10 +241,21 @@ export const runFullPipeline = async (
 
         const phonemeDiff = await callPhonemeDiff(userPhonemes, targetPhonemes)
 
+        // Step 6 (Optional): Generate TTS reference audio for target text
+        let tts: TTSResult | undefined
+        try {
+            tts = await callTTS(targetText, 'Kore')
+            logger.success('TTS reference audio generated', { url: tts.accessible_url })
+        } catch (ttsError) {
+            logger.warn('TTS generation failed, continuing without reference audio', ttsError)
+            // Don't fail the entire pipeline if TTS fails
+        }
+
         logger.success('Full pipeline complete!', {
             transcript: asr.transcript,
             alignmentPhonemes: alignment.phonemes?.length,
-            comparisons: phonemeDiff.comparisons?.length
+            comparisons: phonemeDiff.comparisons?.length,
+            hasTTS: !!tts
         })
 
         return {
@@ -210,6 +264,7 @@ export const runFullPipeline = async (
             phonemeMap: userPhonemeMapResult,
             phonemeDiff,
             targetText,
+            tts,
         }
     } catch (error) {
         logger.error('Pipeline failed', error)
