@@ -154,7 +154,7 @@ def check_existing_instance():
     print(f"🔍 Checking for existing instance named '{INSTANCE_NAME}'...")
     url = "https://cloud.lambdalabs.com/api/v1/instances"
     try:
-        resp = requests.get(url, auth=(API_KEY, ""))
+        resp = requests.get(url, auth=(API_KEY, ""), timeout=30)
         if resp.status_code == 200:
             instances = resp.json().get('data', [])
             for inst in instances:
@@ -198,7 +198,8 @@ def launch_instance():
         resp = requests.post(
             LAUNCH_URL, 
             json=payload, 
-            auth=(API_KEY, "")
+            auth=(API_KEY, ""),
+            timeout=30
         )
         
         if resp.status_code == 200:
