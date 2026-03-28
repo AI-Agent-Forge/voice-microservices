@@ -1,0 +1,44 @@
+Analyze the pronunciation data below and generate expert feedback.
+Return ONLY a valid JSON object matching the schema at the bottom. No markdown, no backticks, no preamble.
+
+Focus on the most significant pronunciation issues. Limit to top {{ max_issues }} issues maximum.
+
+---
+
+## Input Data
+
+**Transcript:** {{ transcript }}
+
+**Alignment Data:**
+{{ alignment_table }}
+
+**User Phonemes (ARPAbet):**
+{{ user_phonemes }}
+
+**Target Phonemes (ARPAbet):**
+{{ target_phonemes }}
+
+**Phoneme Differences:**
+{{ diff_list }}
+
+**Stress & Rhythm:** {{ stress_summary }}
+
+{{ few_shot_examples }}
+
+---
+
+## Required Output JSON Schema
+
+Return a JSON object with EXACTLY these fields:
+
+{{ output_schema_reminder }}
+
+**Rules for this response:**
+- Only reference words that appear in the Phoneme Differences section above.
+- The `user_pronunciation` and `target_pronunciation` fields must be space-joined ARPAbet symbols from the input data.
+- `audio_timestamps` should come directly from the alignment data — do NOT invent timestamps.
+- Scores must follow: `overall_score ≈ (accuracy_score * 0.5) + (fluency_score * 0.3) + (prosody_score * 0.2)`
+- If no issues are detected, set `issues` to an empty array and set `overall_score` to 90+.
+- The `encouragement` field should be genuine, specific, and supportive.
+
+Respond with ONLY the JSON object. No other text.

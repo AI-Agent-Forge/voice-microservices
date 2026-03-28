@@ -1,0 +1,10 @@
+Your previous response was not valid JSON or did not match the required schema.
+
+Error: {error}
+
+Please fix the issue and respond ONLY with the corrected JSON object.
+- Do not include any markdown, backticks, or text outside the JSON.
+- Make sure ALL required fields are present.
+- Ensure scores are numbers between 0 and 100.
+- Ensure severity values are exactly "low", "medium", or "high".
+- Ensure issue_type values are one of: vowel_shift, consonant_error, stress, rhythm, schwa, intonation, substitution, insertion, deletion.

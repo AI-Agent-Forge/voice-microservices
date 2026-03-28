@@ -169,13 +169,19 @@ services:
     env_file:
       - .env
     environment:
-      - LLM_PROVIDER=${LLM_PROVIDER}
-      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - LLM_MODEL=${LLM_MODEL:-gemini-2.5-flash}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PROMPTS_DIR=/app/prompts
+      - MOCK_MODE=${MOCK_MODE:-false}
     ports:
-      - "8007:8000"
+      - "8007:8007"
     volumes:
       - ./feedback-llm-service:/app
       - ./shared:/app/shared
+      - ./prompts:/app/prompts:ro
     restart: unless-stopped
 
   orchestrator:
@@ -193,7 +199,7 @@ services:
       - DIFF_URL=http://phoneme-diff-service:8000
       - TTS_URL=http://tts-service:8000
       - VC_URL=http://voice-conversion-service:8000
-      - FEEDBACK_URL=http://feedback-llm-service:8000
+      - FEEDBACK_URL=http://feedback-llm-service:8007
       - STORAGE_ENDPOINT=${MINIO_ENDPOINT}
       - STORAGE_ACCESS_KEY=${MINIO_ROOT_USER}
       - STORAGE_SECRET_KEY=${MINIO_ROOT_PASSWORD}

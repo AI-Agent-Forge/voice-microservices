@@ -1,8 +1,5 @@
-import os
+# Deprecated: prompt loader moved to app/prompt_loader.py
+# This file kept for backward compatibility
+from app.prompt_loader import PromptLoader
 
-
-def load_prompt(name: str) -> str:
-    path = os.path.join("prompts", name)
-    with open(path, "r") as f:
-        return f.read()
-
+__all__ = ["PromptLoader"]

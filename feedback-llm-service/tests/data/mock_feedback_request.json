@@ -1,0 +1,39 @@
+{
+    "transcript": "Hello world",
+    "alignment": [
+        {"phoneme": "HH", "start": 0.0, "end": 0.12},
+        {"phoneme": "AH", "start": 0.12, "end": 0.25},
+        {"phoneme": "L", "start": 0.25, "end": 0.35},
+        {"phoneme": "OW", "start": 0.35, "end": 0.55},
+        {"phoneme": "W", "start": 0.60, "end": 0.70},
+        {"phoneme": "ER", "start": 0.70, "end": 0.82},
+        {"phoneme": "L", "start": 0.82, "end": 0.90},
+        {"phoneme": "D", "start": 0.90, "end": 1.00}
+    ],
+    "user_phonemes": {
+        "hello": ["HH", "AA", "L", "OW"],
+        "world": ["W", "ER", "L", "D"]
+    },
+    "target_phonemes": {
+        "hello": ["HH", "AH", "L", "OW"],
+        "world": ["W", "ER", "L", "D"]
+    },
+    "phoneme_diff": [
+        {
+            "word": "hello",
+            "user": ["HH", "AA", "L", "OW"],
+            "target": ["HH", "AH", "L", "OW"],
+            "issue": "vowel_shift",
+            "severity": "medium",
+            "notes": "AA → AH: vowel too open in first syllable"
+        },
+        {
+            "word": "world",
+            "user": ["W", "ER", "L", "D"],
+            "target": ["W", "ER", "L", "D"],
+            "issue": "none",
+            "severity": "low",
+            "notes": ""
+        }
+    ]
+}

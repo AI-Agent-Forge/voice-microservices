@@ -9,6 +9,7 @@ const ALIGNMENT_URL = 'http://localhost:8002'
 const PHONEME_MAP_URL = 'http://localhost:8003'
 const PHONEME_DIFF_URL = 'http://localhost:8004'
 const TTS_URL = 'http://localhost:8005'
+const FEEDBACK_LLM_URL = 'http://localhost:8007'
 
 // ============================================================
 // Alignment Service Types
@@ -70,6 +71,41 @@ export interface TTSResult {
 }
 
 // ============================================================
+// Feedback LLM Service Types
+// ============================================================
+
+export interface FeedbackIssue {
+    word: string
+    user_pronunciation: string
+    target_pronunciation: string
+    issue_type: string
+    explanation: string
+    fix_instructions: string
+    audio_timestamps?: { start: number; end: number }
+    severity: 'low' | 'medium' | 'high'
+}
+
+export interface FeedbackDrills {
+    minimal_pairs: string[]
+    repeat_phrases: string[]
+    focus_phonemes: string[]
+}
+
+export interface FeedbackLLMResponse {
+    overall_summary: string
+    issues: FeedbackIssue[]
+    drills: FeedbackDrills
+    overall_score: number | null
+    fluency_score: number | null
+    accuracy_score: number | null
+    prosody_score: number | null
+    strengths: string[]
+    improvement_tips: string[]
+    encouragement: string
+    fallback: boolean
+}
+
+// ============================================================
 // Full Pipeline Response
 // ============================================================
 export interface PipelineResponse {
@@ -79,6 +115,7 @@ export interface PipelineResponse {
     phonemeDiff: PhonemeDiffResponse
     targetText: string
     tts?: TTSResult
+    feedback?: FeedbackLLMResponse
 }
 
 // ============================================================
@@ -186,6 +223,48 @@ export const callTTS = async (
     }
 }
 
+/**
+ * Step 6: Generate AI pronunciation feedback via Feedback LLM service
+ */
+export const callFeedbackLLM = async (
+    transcript: string,
+    alignment: AlignmentPhoneme[],
+    userPhonemes: Record<string, string[]>,
+    targetPhonemes: Record<string, string[]>,
+    comparisons: ComparisonResult[]
+): Promise<FeedbackLLMResponse> => {
+    logger.info('Calling Feedback LLM service...', {
+        transcript: transcript.slice(0, 50),
+        issueCount: comparisons.filter(c => c.severity !== 'none').length
+    })
+
+    const response = await axios.post<FeedbackLLMResponse>(`${FEEDBACK_LLM_URL}/feedback/process`, {
+        transcript,
+        alignment: alignment.map(a => ({
+            phoneme: a.phoneme,
+            start: a.start,
+            end: a.end
+        })),
+        user_phonemes: userPhonemes,
+        target_phonemes: targetPhonemes,
+        phoneme_diff: comparisons.map(c => ({
+            word: c.word,
+            user: c.user,
+            target: c.target,
+            issue: c.issue,
+            severity: c.severity === 'none' ? 'low' : c.severity,
+            notes: c.notes
+        }))
+    }, { timeout: 45000 })
+
+    logger.success('Feedback LLM complete', {
+        score: response.data.overall_score,
+        issues: response.data.issues?.length,
+        fallback: response.data.fallback
+    })
+    return response.data
+}
+
 // ============================================================
 // Full Pipeline
 // ============================================================
@@ -251,11 +330,31 @@ export const runFullPipeline = async (
             // Don't fail the entire pipeline if TTS fails
         }
 
+        // Step 7 (Optional): Generate AI Feedback via Feedback LLM service
+        let feedback: FeedbackLLMResponse | undefined
+        try {
+            feedback = await callFeedbackLLM(
+                asr.transcript,
+                alignment.phonemes || [],
+                userPhonemes,
+                targetPhonemes,
+                phonemeDiff.comparisons || []
+            )
+            logger.success('Feedback LLM complete', {
+                score: feedback.overall_score,
+                issues: feedback.issues?.length
+            })
+        } catch (feedbackError) {
+            logger.warn('Feedback LLM failed, continuing without AI feedback', feedbackError)
+            // Don't fail the entire pipeline if feedback fails
+        }
+
         logger.success('Full pipeline complete!', {
             transcript: asr.transcript,
             alignmentPhonemes: alignment.phonemes?.length,
             comparisons: phonemeDiff.comparisons?.length,
-            hasTTS: !!tts
+            hasTTS: !!tts,
+            hasFeedback: !!feedback
         })
 
         return {
@@ -265,6 +364,7 @@ export const runFullPipeline = async (
             phonemeDiff,
             targetText,
             tts,
+            feedback,
         }
     } catch (error) {
         logger.error('Pipeline failed', error)

@@ -1,0 +1,112 @@
+[
+  {
+    "label": "near_perfect",
+    "input": {
+      "transcript": "The weather is nice today",
+      "phoneme_diff_summary": "All words matched. No issues detected."
+    },
+    "output": {
+      "overall_summary": "Excellent pronunciation! All 5 words were articulated clearly with proper General American phoneme patterns.",
+      "issues": [],
+      "drills": {
+        "minimal_pairs": [],
+        "repeat_phrases": ["The weather is nice today"],
+        "focus_phonemes": []
+      },
+      "overall_score": 95.0,
+      "fluency_score": 96.0,
+      "accuracy_score": 95.0,
+      "prosody_score": 93.0,
+      "strengths": ["Excellent vowel clarity", "Natural speaking rhythm", "Clear consonant articulation"],
+      "improvement_tips": ["Continue practicing with longer sentences to maintain consistency"],
+      "encouragement": "Outstanding work! Your pronunciation is very clear and natural-sounding.",
+      "fallback": false
+    }
+  },
+  {
+    "label": "moderate_errors",
+    "input": {
+      "transcript": "She sells sea shells",
+      "phoneme_diff_summary": "2 issues: 'she' (SH→S substitution, medium), 'shells' (vowel_shift EH→AE, low)"
+    },
+    "output": {
+      "overall_summary": "Good effort! 2 out of 4 words had minor pronunciation differences. Focus on the SH sound and the short-E vowel.",
+      "issues": [
+        {
+          "word": "she",
+          "user_pronunciation": "S IY",
+          "target_pronunciation": "SH IY",
+          "issue_type": "consonant_error",
+          "explanation": "The SH sound was replaced with a plain S. SH requires the tongue to be pulled back slightly.",
+          "fix_instructions": "Round your lips slightly and push the tongue back. Practice: 'shh' (like asking for silence), then add the vowel.",
+          "severity": "medium"
+        },
+        {
+          "word": "shells",
+          "user_pronunciation": "SH AE L Z",
+          "target_pronunciation": "SH EH L Z",
+          "issue_type": "vowel_shift",
+          "explanation": "The vowel EH (as in 'bed') was shifted to AE (as in 'bad').",
+          "fix_instructions": "Keep your jaw slightly more closed for EH. Think of the vowel in 'bed' rather than 'bad'.",
+          "severity": "low"
+        }
+      ],
+      "drills": {
+        "minimal_pairs": ["ship–sip", "sheep–seep", "shore–sore"],
+        "repeat_phrases": ["She sells sea shells by the seashore", "The ship sailed south"],
+        "focus_phonemes": ["SH", "EH"]
+      },
+      "overall_score": 72.0,
+      "fluency_score": 80.0,
+      "accuracy_score": 65.0,
+      "prosody_score": 75.0,
+      "strengths": ["Good speaking pace", "Clear word boundaries"],
+      "improvement_tips": ["Practice the SH consonant—it's different from S", "Work on EH vs AE vowel distinction"],
+      "encouragement": "Nice job! The SH sound is tricky for many learners. With targeted practice, you'll master it quickly.",
+      "fallback": false
+    }
+  },
+  {
+    "label": "heavy_errors",
+    "input": {
+      "transcript": "This thing is three thousand",
+      "phoneme_diff_summary": "4 issues: 'this' (TH→D, high), 'thing' (TH→T, high), 'three' (TH→T, high), 'thousand' (TH→T, high)"
+    },
+    "output": {
+      "overall_summary": "Multiple TH sound issues detected. The dental fricative TH is consistently replaced with stop consonants (D or T). This is a common pattern that responds well to targeted practice.",
+      "issues": [
+        {
+          "word": "this",
+          "user_pronunciation": "D IH S",
+          "target_pronunciation": "DH IH S",
+          "issue_type": "consonant_error",
+          "explanation": "The voiced TH (DH) was replaced with D. TH requires placing the tongue between the teeth.",
+          "fix_instructions": "Place the tip of your tongue lightly between your upper and lower teeth. Vibrate your vocal cords while pushing air through. Practice slowly: 'th-th-this'.",
+          "severity": "high"
+        },
+        {
+          "word": "thing",
+          "user_pronunciation": "T IH NG",
+          "target_pronunciation": "TH IH NG",
+          "issue_type": "consonant_error",
+          "explanation": "The voiceless TH was replaced with T.",
+          "fix_instructions": "Same tongue-between-teeth position, but without vocal cord vibration. Practice: 'th-th-thing'.",
+          "severity": "high"
+        }
+      ],
+      "drills": {
+        "minimal_pairs": ["thin–tin", "three–tree", "think–tink", "this–dis", "that–dat"],
+        "repeat_phrases": ["This thing is three thousand dollars", "The thirty-third thing", "I think that this is the one"],
+        "focus_phonemes": ["TH", "DH"]
+      },
+      "overall_score": 45.0,
+      "fluency_score": 60.0,
+      "accuracy_score": 30.0,
+      "prosody_score": 55.0,
+      "strengths": ["Good speaking volume", "Words are distinguishable"],
+      "improvement_tips": ["Focus exclusively on TH sounds this week", "Practice tongue-between-teeth position daily", "Start with slow, exaggerated TH sounds before speeding up"],
+      "encouragement": "The TH sound is one of the hardest sounds in English — even advanced learners struggle with it. You're on the right track, and consistent daily practice will make a huge difference!",
+      "fallback": false
+    }
+  }
+]

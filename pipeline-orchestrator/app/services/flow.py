@@ -1,5 +1,8 @@
+import logging
 import requests
 from shared.utils.audio_utils import save_temp_audio
+
+logger = logging.getLogger(__name__)
 from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db import models
@@ -62,16 +65,30 @@ async def run_pipeline(file):
         f"{settings.VC_URL}/convert/",
         json={"tts_audio_url": tts.get("audio_url", ""), "user_voice_sample_url": ""},
     ).json()
-    feedback = requests.post(
-        f"{settings.FEEDBACK_URL}/feedback/",
-        json={
-            "transcript": asr.get("transcript", ""),
-            "alignment": alignment.get("phonemes", []),
-            "user_phonemes": phoneme_map,
-            "target_phonemes": phoneme_map,
-            "phoneme_diff": diff.get("issues", []),
-        },
-    ).json()
+    # Step 5.7: Feedback LLM
+    try:
+        logger.info("[ORCHESTRATOR] Step 5.7 Feedback LLM — START")
+        feedback = requests.post(
+            f"{settings.FEEDBACK_URL}/feedback/process",
+            json={
+                "transcript": asr.get("transcript", ""),
+                "alignment": alignment.get("phonemes", []),
+                "user_phonemes": phoneme_map,
+                "target_phonemes": phoneme_map,
+                "phoneme_diff": diff.get("comparisons", diff.get("issues", [])),
+            },
+            timeout=45,
+        ).json()
+        logger.info("[ORCHESTRATOR] Step 5.7 Feedback LLM — DONE")
+    except Exception as e:
+        logger.error(f"[ORCHESTRATOR] Step 5.7 Feedback LLM — FAILED: {e}")
+        feedback = {
+            "overall_summary": "Feedback temporarily unavailable.",
+            "issues": [],
+            "drills": {"minimal_pairs": [], "repeat_phrases": [], "focus_phonemes": []},
+            "overall_score": None,
+            "fallback": True,
+        }
 
     result = {
         "task_id": str(task.id),

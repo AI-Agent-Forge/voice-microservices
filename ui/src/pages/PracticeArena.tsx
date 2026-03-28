@@ -10,6 +10,7 @@ import RecordingTimer from '../components/RecordingTimer'
 import { saveAudio } from '../services/audioStorage'
 import { runFullPipeline, calculateScore, generateFeedback, callTTS, type PipelineResponse, type TTSResult } from '../services/pipeline'
 import { logger } from '../stores/debug'
+import FeedbackPanel from '../components/FeedbackPanel'
 
 export default function PracticeArena() {
   const navigate = useNavigate()
@@ -680,6 +681,9 @@ export default function PracticeArena() {
                   </div>
                 </div>
               </div>
+
+              {/* AI Feedback Panel */}
+              <FeedbackPanel feedback={pipelineResult.feedback || null} />
 
               {/* TTS Reference Audio Section */}
               {(pipelineResult.tts || ttsAudio) && (
